@@ -85,5 +85,6 @@ defineProps({
   .yi-icon-image(cut, 'cut');
   .yi-icon-image(close, 'close');
   .yi-icon-image(logo, 'logo');
+  .yi-icon-image(camera, 'camera');
 }
 </style>

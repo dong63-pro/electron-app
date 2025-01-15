@@ -5,7 +5,10 @@
       <div class="app-tool">
         <Languages />
         <div class="app-tool-btn">
-          <div @click="screenShotsTrans">截图翻译</div>
+          <div @click="screenShotsTrans">
+            <svg-icon icon-class="camera"></svg-icon>
+            <span>截图翻译</span>
+          </div>
           <div @click="selectWordsTrans">划词翻译</div>
         </div>
       </div>
@@ -52,7 +55,9 @@ window.api.screenshotEndNotifyEvent((imageBase64) => {
 const selectWordsTrans = (): void => {}
 
 // 截图翻译
-const screenShotsTrans = (): void => {}
+const screenShotsTrans = (): void => {
+  window.api.screenShotsStartEvent()
+}
 
 // 翻译
 const translateFun = (): void => {}
@@ -79,6 +84,12 @@ const translateFun = (): void => {}
         display: flex;
         cursor: pointer;
         gap: 10px;
+
+        div {
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
       }
     }
 

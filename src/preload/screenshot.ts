@@ -421,7 +421,7 @@ const screenScaleFactorEvent = (screenId): void => {
 const api = {
   screenScaleFactorNoticeEvent,
   screenScaleFactorEvent,
-  screenshotEndEvent
+  screenshotEndEvent,
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

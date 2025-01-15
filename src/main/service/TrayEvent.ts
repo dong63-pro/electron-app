@@ -23,6 +23,18 @@ class TrayEvent {
         click: (): void => {
           GlobalShortcutEvent.translateInput()
         }
+      },
+      {
+        label: '截图翻译',
+        click: (): void => {
+          GlobalShortcutEvent.translateScreenshot()
+        }
+      },
+      {
+        label: '退出',
+        click: (): void => {
+          app.quit()
+        }
       }
     ]
 
@@ -54,7 +66,7 @@ class TrayEvent {
     // 单击显示主窗口，再单击隐藏主窗口
     TrayEvent.mainTray.on('click', () => {
       if (SystemTypeEnum.isWin()) {
-        // GlobalShortcutEvent.translateInput()
+        GlobalShortcutEvent.translateInput()
       }
     })
   }

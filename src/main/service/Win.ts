@@ -1,5 +1,6 @@
 import { app, clipboard, ipcMain, nativeImage } from 'electron'
 import GlobalWin from './GlobalWin'
+import { GlobalShortcutEvent } from './GlobalShortcutEvent'
 
 class WinEvent {
   static mainWinInfo
@@ -24,6 +25,12 @@ class WinEvent {
      */
     ipcMain.handle('window-minimize-event', () => {
       WinEvent.minimizeWin()
+    })
+    /**
+     * 开始截图
+     */
+    ipcMain.handle('screen-shots-start-event', (_event) => {
+      GlobalShortcutEvent.translateScreenshot()
     })
   }
 

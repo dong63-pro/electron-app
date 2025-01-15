@@ -8,6 +8,7 @@ declare global {
     updateTranslateContentEvent
     clearAllTranslateContentEvent
     screenshotEndNotifyEvent
+    screenShotsStartEvent
   }
   interface Window {
     electron: ElectronAPI

@@ -10,6 +10,9 @@ const windowCloseEvent = () => {
 const windowMinimize = () => {
   electron.ipcRenderer.invoke("window-minimize-event");
 };
+const screenShotsStartEvent = () => {
+  electron.ipcRenderer.invoke("screen-shots-start-event");
+};
 const updateTranslateContentEvent = (callback) => {
   electron.ipcRenderer.on("update-translated-content", (_event, content) => {
     callback(content);
@@ -31,7 +34,8 @@ const api = {
   windowMinimize,
   updateTranslateContentEvent,
   clearAllTranslateContentEvent,
-  screenshotEndNotifyEvent
+  screenshotEndNotifyEvent,
+  screenShotsStartEvent
 };
 if (process.contextIsolated) {
   try {

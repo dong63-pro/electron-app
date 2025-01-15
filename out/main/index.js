@@ -232,6 +232,9 @@ class WinEvent {
     electron.ipcMain.handle("window-minimize-event", () => {
       WinEvent.minimizeWin();
     });
+    electron.ipcMain.handle("screen-shots-start-event", (_event) => {
+      GlobalShortcutEvent.translateScreenshot();
+    });
   }
   /**
    * 主窗口置顶
@@ -724,6 +727,18 @@ class TrayEvent {
         click: () => {
           GlobalShortcutEvent.translateInput();
         }
+      },
+      {
+        label: "截图翻译",
+        click: () => {
+          GlobalShortcutEvent.translateScreenshot();
+        }
+      },
+      {
+        label: "退出",
+        click: () => {
+          electron.app.quit();
+        }
       }
     ];
     let iconPath;
@@ -746,7 +761,9 @@ class TrayEvent {
     const contextMenu = electron.Menu.buildFromTemplate(trayMenuTemplate);
     TrayEvent.mainTray.setContextMenu(contextMenu);
     TrayEvent.mainTray.on("click", () => {
-      if (SystemTypeEnum.isWin()) ;
+      if (SystemTypeEnum.isWin()) {
+        GlobalShortcutEvent.translateInput();
+      }
     });
   }
 }

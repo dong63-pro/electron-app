@@ -22,6 +22,10 @@ const windowMinimize = (): void => {
   ipcRenderer.invoke('window-minimize-event')
 }
 
+const screenShotsStartEvent = (): void => {
+  ipcRenderer.invoke('screen-shots-start-event')
+}
+
 /**
  * 监听更新翻译输入内容事件
  *
@@ -62,7 +66,8 @@ const api = {
   windowMinimize,
   updateTranslateContentEvent,
   clearAllTranslateContentEvent,
-  screenshotEndNotifyEvent
+  screenshotEndNotifyEvent,
+  screenShotsStartEvent
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

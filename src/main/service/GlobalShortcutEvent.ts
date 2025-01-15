@@ -1,7 +1,7 @@
 import robot from '@jitsi/robotjs'
 import GlobalWin from './GlobalWin'
 import { uIOhook, UiohookKey } from 'uiohook-napi'
-import { app, BrowserWindow, clipboard, globalShortcut } from 'electron'
+import { app, BrowserWindow, clipboard, globalShortcut, ipcMain } from 'electron'
 import { ShortcutKeyEnum } from '../../common/enums/ShortcutKeyEnum'
 import { SystemTypeEnum } from '../../common/enums/SystemTypeEnum'
 import StoreService from './StoreService'
@@ -196,7 +196,7 @@ class GlobalShortcutEvent {
       GlobalShortcutEvent.isChoice = false
       selectedText = GlobalShortcutEvent.splitSingleCamelCase(selectedText)
       selectedText = GlobalShortcutEvent.splitSingleUnderScore(selectedText)
-    
+
       // 推送给Vue页面进行更新翻译输入内容
       GlobalWin.mainWinUpdateTranslatedContent(selectedText)
       GlobalWin.mainWinShow()

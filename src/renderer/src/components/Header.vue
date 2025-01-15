@@ -4,7 +4,7 @@
       <SvgIcon icon-class="logo" size="xxl"></SvgIcon>
     </div>
     <div class="app-header_toolbox">
-      <el-tooltip content="钉住窗口">
+      <el-tooltip content="钉住窗口" placement="top" :visible-arrow="false" :show-arrow="false">
         <a class="function-tools" @click="thumbtackFun">
           <svg-icon
             :icon-class="thumbtackStatus === YesNoEnum.Y ? 'thumbtack-select' : 'thumbtack'"
@@ -17,7 +17,7 @@
           <svg-icon icon-class="cut" size="sm" class="function-tools-icon" />
         </a>
       </el-tooltip>
-      <el-tooltip content="关闭">
+      <el-tooltip content="关闭" disabled>
         <a class="function-tools" @click="closeGlobalWinFn">
           <svg-icon icon-class="close" size="xs" class="function-tools-icon" />
         </a>
