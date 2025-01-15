@@ -1,0 +1,16 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+  "include": [
+    "electron.vite.config.*",
+    "src/preload/*",
+    "src/main/*",
+    "src/main/service/*",
+    "src/main/service/screen/*",
+    "src/common/enums/*",
+    "src/common/utils/*",
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "types": ["electron-vite/node", "vite/client"]
+  }
+}
