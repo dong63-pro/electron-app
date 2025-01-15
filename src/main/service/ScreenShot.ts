@@ -2,9 +2,10 @@ import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import * as path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { Screenshots } from 'node-screenshots'
-import GlobalWin from './GlobalWin'
 import { GlobalShortcutEvent } from './GlobalShortcutEvent'
 import { SystemTypeEnum } from '../../common/enums/SystemTypeEnum'
+import { WinEvent } from './Win'
+import GlobalWin from './GlobalWin'
 
 let nullWin: BrowserWindow
 
@@ -18,22 +19,9 @@ app.whenReady().then(() => {})
  */
 ipcMain.handle('screenshot-end-event', (_event, imgByBase64) => {
   ScreenshotsMain.closeScreenshotsWin()
-  // if (ScreenshotsMain.ocrType === OcrTypeEnum.OCR) {
-  //   GlobalWin.ocrWin.show()
-  //   setTimeout(() => WinEvent.ocrAlwaysOnTop(GlobalWin.isOcrAlwaysOnTop), 300)
-  //   GlobalWin.ocrWin.webContents.send('update-img', imgByBase64)
-  // } else if (ScreenshotsMain.ocrType === OcrTypeEnum.OCR_TRANSLATE) {
-  //   GlobalWin.mainWinShow()
-  //   // 当窗口为置顶时触发截图会自动隐藏窗口 从而导致置顶失效
-  //   // 这里在重新获取置顶状态进行设置
-  //   // 并且要延迟执行 否则会重新设置失败
-  //   setTimeout(() => WinEvent.alwaysOnTop(GlobalWin.isMainAlwaysOnTop), 300)
-  //   // 截图结束通知事件
-  //   GlobalWin.mainWinSend('screenshot-end-notify-event')
-  // } else if (ScreenshotsMain.ocrType === OcrTypeEnum.OCR_SILENCE) {
-  //   GlobalWin.ocrSilenceTempImg = imgByBase64
-  //   GlobalWin.ocrSilenceWinShow()
-  // }
+  GlobalWin.mainWinShow()
+  setTimeout(() => WinEvent.alwaysOnTop(GlobalWin.isMainAlwaysOnTop), 300)
+  GlobalWin.mainWinSend('screenshot-end-notify-event', imgByBase64)
 })
 
 /**

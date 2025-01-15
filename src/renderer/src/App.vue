@@ -4,9 +4,9 @@
     <div class="app-content">
       <div class="app-tool">
         <Languages />
-        <div class="">
-          <span @click="screenShotsTrans">截图翻译</span>
-          <span @click="selectWordsTrans">划词翻译</span>
+        <div class="app-tool-btn">
+          <div @click="screenShotsTrans">截图翻译</div>
+          <div @click="selectWordsTrans">划词翻译</div>
         </div>
       </div>
       <el-input
@@ -16,6 +16,7 @@
         type="textarea"
         placeholder="请输入或粘贴文字"
         :autofocus="true"
+        size="small"
         @keydown.enter="translateFun"
       />
       <img :src="screenShotSrc" class="img" />
@@ -43,8 +44,8 @@ window.api.clearAllTranslateContentEvent(() => {
   translateContent.value = ''
 })
 
-window.api.screenshotEndNotifyEvent((imageBase64, screenImgUrl) => {
-  screenShotSrc.value = screenImgUrl
+window.api.screenshotEndNotifyEvent((imageBase64) => {
+  screenShotSrc.value = imageBase64
 })
 
 // 开启划词翻译
@@ -63,33 +64,34 @@ const translateFun = (): void => {}
   padding: 5px;
   color: #000;
   font-size: 14px;
-  overflow: auto;
 
   .app-content {
-    padding: 10px 30px;
+    padding: 10px 27px;
 
     .app-tool {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
+      font-size: 12px;
+
+      .app-tool-btn {
+        display: flex;
+        cursor: pointer;
+        gap: 10px;
+      }
+    }
+
+    .img {
+      border-radius: 5px;
+      max-width: 95%;
+      max-height: 95%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
     }
   }
-}
-.app-select-btn {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-}
-
-.img {
-  border-radius: 5px;
-  max-width: 95%;
-  max-height: 95%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 </style>

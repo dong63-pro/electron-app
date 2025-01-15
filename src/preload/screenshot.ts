@@ -1,4 +1,4 @@
-import { contextBridge, nativeImage } from 'electron'
+import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 const ipcRenderer = electronAPI.ipcRenderer
@@ -15,7 +15,6 @@ document.oncontextmenu = () => {
  * 窗口绘制截图样式
  */
 ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
-  console.info('win')
   // @ts-ignore
   // 设置显示器ID
   document.getElementById('screenId').value = screenImgInfo.screenId
@@ -24,10 +23,6 @@ ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
   // 可能还没有设置完 screenId ，所以会导致没有获取到
   // 所以这里手动触发一次
   ipcRenderer.invoke('screen-scale-factor-event', screenImgInfo.screenId)
-  // 背景图
-  const bg = document.querySelector('.bg')
-  // 背景放大镜
-  const bgMagnifier = document.getElementById('magnifierImg')
   // 画图框
   const rect = document.querySelector('.rect')
   // 尺寸信息
@@ -42,8 +37,6 @@ ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
   const draw = new Draw(
     screenImgInfo.screenImgUrl,
     // @ts-ignore
-    bg,
-    bgMagnifier,
     screenImgInfo.width,
     screenImgInfo.height,
     rect,
@@ -110,8 +103,6 @@ class Draw {
   screenImgUrl: string
   screenWidth: number
   screenHeight: number
-  $bgImageDOM: HTMLImageElement
-  $bgMagnifierImageDOM: HTMLImageElement
   /**
    * 背景图数据存在 canvas 里面
    */
@@ -132,8 +123,6 @@ class Draw {
 
   constructor(
     screenImgUrl: string,
-    bg: HTMLImageElement,
-    bgMagnifier: HTMLImageElement,
     screenWidth: number,
     screenHeight: number,
     rect,
@@ -148,15 +137,13 @@ class Draw {
     // 屏幕图像
     this.screenWidth = screenWidth
     this.screenHeight = screenHeight
-    this.$bgImageDOM = bg
-    this.$bgMagnifierImageDOM = bgMagnifier
     this.$bgCanvasTemp = null
     this.$bgCanvasTempCtx = null
     // 初始化操作屏幕快照及画布
     this.initFullScreenCanvas()
 
     this.$rectCanvasDOM = rect
-    this.$rectCanvasCtx = this.$rectCanvasDOM.getContext('2d')
+    this.$rectCanvasCtx = this.$rectCanvasDOM.getContext('2d', { willReadFrequently: true })
 
     this.$sizeInfoDom = sizeInfo
     this.$screenToolDom = screenToolDom
@@ -180,14 +167,9 @@ class Draw {
    * 记录屏幕快照，并赋值给背景
    */
   async initFullScreenCanvas(): Promise<void> {
-    // 设置背景图片
-    this.$bgImageDOM.src = this.screenImgUrl
-    // 设置放大镜背景图片
-    this.$bgMagnifierImageDOM.src = this.screenImgUrl
-
     // 创建新的canvas上下文作为存储，方便取出里面的rgba信息
     this.$bgCanvasTemp = document.createElement('canvas')
-    this.$bgCanvasTempCtx = this.$bgCanvasTemp.getContext('2d')
+    this.$bgCanvasTempCtx = this.$bgCanvasTemp.getContext('2d', { willReadFrequently: true })
     // 新建一个图片，用来放进canvas存图片数据
     const img = await new Promise((resolve) => {
       const img = new Image()
@@ -218,7 +200,6 @@ class Draw {
     // 鼠标按下的定点坐标
     this.selectRectMeta.startX = e.pageX
     this.selectRectMeta.startY = e.pageY
-    this.$screenToolDom.style.display = 'none'
   }
   /**
    * 遮罩层
@@ -241,6 +222,12 @@ class Draw {
     if (!this.drawing) {
       return
     }
+    if (null === this.$rectCanvasCtx) {
+      return
+    }
+    this.$screenToolDom.style.display = 'none'
+    this.$rectCanvasCtx.clearRect(0, 0, this.screenWidth, this.screenHeight)
+    this.drawingMark()
     this.updateMouseCoordinate(e)
     // 宽高需赋值绝对值为正
     const selectWidth = Math.abs(this.selectRectMeta.w)
@@ -252,21 +239,7 @@ class Draw {
     if (!this.selectRectMeta.w || !this.selectRectMeta.h) {
       return
     }
-    if (null === this.$bgCanvasTempCtx) {
-      return
-    }
-    // 获取 矩形 坐标在整个 全屏 的位置，生成RGBAData传入回矩形选区
-    this.selectRectMeta.RGBAData = this.$bgCanvasTempCtx.getImageData(
-      selectX,
-      selectY,
-      Math.abs(this.selectRectMeta.w),
-      Math.abs(this.selectRectMeta.h)
-    )
-    if (null === this.$rectCanvasCtx) {
-      return
-    }
-    this.$rectCanvasCtx.clearRect(0, 0, this.screenWidth, this.screenHeight)
-    this.drawingMark()
+
     this.$rectCanvasCtx.globalCompositeOperation = 'destination-out'
     this.$rectCanvasCtx.fillStyle = '#000'
     this.$rectCanvasCtx.fillRect(selectX, selectY, selectWidth, selectHeight)
@@ -274,13 +247,22 @@ class Draw {
     // 设置边框颜色
     this.$rectCanvasCtx.strokeStyle = '#619ffb'
     // 设置虚线样式，参数为一个数组，代表线段和间隔的长度
-    this.$rectCanvasCtx.setLineDash([5, 3])
+    this.$rectCanvasCtx.setLineDash([50, 8])
     // 设置边框宽度
-    this.$rectCanvasCtx.lineWidth = 2
+    this.$rectCanvasCtx.lineWidth = 5
     // 绘制矩形边框
-    this.$rectCanvasCtx.strokeRect(selectX, selectY, selectWidth, selectHeight)
+    this.$rectCanvasCtx.strokeRect(selectX + 5, selectY + 5, selectWidth - 10, selectHeight - 10)
     //尺寸信息
     this.setSizeInfo()
+    // 获取 矩形 坐标在整个 全屏 的位置，生成RGBAData传入回矩形选区
+    if (this.$bgCanvasTempCtx) {
+      this.selectRectMeta.RGBAData = this.$bgCanvasTempCtx.getImageData(
+        selectX,
+        selectY,
+        Math.abs(this.selectRectMeta.w),
+        Math.abs(this.selectRectMeta.h)
+      )
+    }
   }
 
   /**
@@ -316,9 +298,6 @@ class Draw {
   endRect(): void {
     // 设置为绘图结束状态
     this.drawing = false
-    // 转成base64图片
-    this.selectRectMeta.base64Data = this.RGBA2ImageData(this.selectRectMeta.RGBAData)
-    // this.done()
     this.setToolBtn()
   }
 
@@ -337,10 +316,18 @@ class Draw {
 
   setToolBtn(): void {
     this.$screenToolDom.style.display = 'flex'
-    const leftPx = this.selectRectMeta.endX - 130
+    const toolboxWidth = 130,
+      toolboxHeight = 30
+    const marginTop = 10
+    const leftPx = this.selectRectMeta.endX - toolboxWidth
+
+    const topPx = this.selectRectMeta.endY + marginTop + toolboxHeight
     const toolLeft = leftPx > 0 ? leftPx : this.selectRectMeta.startX
+    // 如果鼠标结束位置+ margin + 工具高度 大于 窗口高度
+    const toolTop =
+      topPx > this.screenHeight ? this.selectRectMeta.endY - marginTop : topPx - toolboxHeight
     this.$screenToolDom.style.left = `${toolLeft}px`
-    this.$screenToolDom.style.top = `${this.selectRectMeta.endY}px`
+    this.$screenToolDom.style.top = `${toolTop}px`
   }
 
   /**
@@ -355,7 +342,7 @@ class Draw {
   /**
    * 关闭截图窗口
    */
-  close(): void {
+  close(e): void {
     ipcRenderer.invoke('close-screenshots-win-event')
   }
 
@@ -363,6 +350,8 @@ class Draw {
    * 完成截图
    */
   done(): void {
+    // 转成base64图片
+    this.selectRectMeta.base64Data = this.RGBA2ImageData(this.selectRectMeta.RGBAData)
     const imgByBase64 = this.selectRectMeta.base64Data
     if (null === imgByBase64) {
       return
@@ -386,7 +375,7 @@ class Draw {
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (ctx == null) {
       return ''
     }

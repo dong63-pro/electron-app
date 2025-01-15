@@ -24,12 +24,10 @@ const langLable = (lang: string): void => {
 .language-select {
   display: flex;
   align-items: center;
-  font-size: 14px;
-
-  .language-box {
-    background: var(--ev-c-white-mute);
-    padding: 0px 5px;
-  }
+  font-size: 12px;
+  background: var(--ev-c-white-mute);
+  padding: 2px 5px;
+  cursor: pointer;
 }
 .icon-sort {
   transform: rotate(90deg);

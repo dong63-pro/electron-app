@@ -8,8 +8,8 @@ import { TrayEvent } from './service/TrayEvent'
 import StoreService from './service/StoreService'
 
 const mainWinInfo = {
-  width: 550,
-  height: 339
+  width: 450,
+  height: 259
 }
 const initStore = async (): Promise<void> => {
   await StoreService.init()
@@ -28,6 +28,8 @@ function createWindow(): void {
     frame: false,
     resizable: true,
     transparent: true,
+    // 跳过任务栏
+    skipTaskbar: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {

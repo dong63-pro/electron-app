@@ -219,12 +219,51 @@ electron.ipcMain.handle("cache-set", (_event, storeTypeEnum, key, obj) => {
 electron.ipcMain.handle("cache-delete", (_event, storeTypeEnum, key) => {
   StoreService[storeTypeEnum + "DeleteByKey"](key);
 });
+class WinEvent {
+  static mainWinInfo;
+  constructor(mainWinInfo2) {
+    WinEvent.mainWinInfo = mainWinInfo2;
+    electron.ipcMain.handle("always-on-top-event", (_event, status) => {
+      WinEvent.alwaysOnTop(status);
+    });
+    electron.ipcMain.handle("window-close-event", () => {
+      WinEvent.closeWin();
+    });
+    electron.ipcMain.handle("window-minimize-event", () => {
+      WinEvent.minimizeWin();
+    });
+  }
+  /**
+   * 主窗口置顶
+   *
+   * @param status 置顶状态
+   */
+  static alwaysOnTop(status) {
+    GlobalWin.mainWin.setAlwaysOnTop(status);
+    GlobalWin.isMainAlwaysOnTop = status;
+  }
+  /**
+   * 主窗口关闭
+   */
+  static closeWin() {
+    GlobalWin.mainWin.close(true);
+  }
+  /**
+   * 主窗口最小化
+   */
+  static minimizeWin() {
+    GlobalWin.mainWin.minimize();
+  }
+}
 let nullWin;
 const screenshotWinMap = /* @__PURE__ */ new Map();
 electron.app.whenReady().then(() => {
 });
 electron.ipcMain.handle("screenshot-end-event", (_event, imgByBase64) => {
   ScreenshotsMain.closeScreenshotsWin();
+  GlobalWin.mainWinShow();
+  setTimeout(() => WinEvent.alwaysOnTop(GlobalWin.isMainAlwaysOnTop), 300);
+  GlobalWin.mainWinSend("screenshot-end-notify-event", imgByBase64);
 });
 electron.ipcMain.handle("screen-scale-factor-event", (_event, screenId) => {
   const screenshotWin = screenshotWinMap.get(screenId);
@@ -668,42 +707,6 @@ class GlobalWin {
     return text;
   }
 }
-class WinEvent {
-  static mainWinInfo;
-  constructor(mainWinInfo2) {
-    WinEvent.mainWinInfo = mainWinInfo2;
-    electron.ipcMain.handle("always-on-top-event", (_event, status) => {
-      WinEvent.alwaysOnTop(status);
-    });
-    electron.ipcMain.handle("window-close-event", () => {
-      WinEvent.closeWin();
-    });
-    electron.ipcMain.handle("window-minimize-event", () => {
-      WinEvent.minimizeWin();
-    });
-  }
-  /**
-   * 主窗口置顶
-   *
-   * @param status 置顶状态
-   */
-  static alwaysOnTop(status) {
-    GlobalWin.mainWin.setAlwaysOnTop(status);
-    GlobalWin.isMainAlwaysOnTop = status;
-  }
-  /**
-   * 主窗口关闭
-   */
-  static closeWin() {
-    GlobalWin.mainWin.close(true);
-  }
-  /**
-   * 主窗口最小化
-   */
-  static minimizeWin() {
-    GlobalWin.mainWin.minimize();
-  }
-}
 class TrayEvent {
   static mainTray;
   constructor() {
@@ -748,8 +751,8 @@ class TrayEvent {
   }
 }
 const mainWinInfo = {
-  width: 550,
-  height: 339
+  width: 450,
+  height: 259
 };
 const initStore = async () => {
   await StoreService.init();
@@ -765,6 +768,8 @@ function createWindow() {
     frame: false,
     resizable: true,
     transparent: true,
+    // 跳过任务栏
+    skipTaskbar: true,
     autoHideMenuBar: true,
     ...process.platform === "linux" ? { icon } : {},
     webPreferences: {

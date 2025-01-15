@@ -27,15 +27,7 @@ export default defineConfig({
         '@assets': resolve('src/renderer/src/assets')
       }
     },
-    plugins: [
-      vue(),
-      createSvgIconsPlugin({
-        // 指定需要缓存的图标文件夹
-        iconDirs: [resolve(process.cwd(), 'src/renderer/src/icons/svg')],
-        // 指定symbolId格式
-        symbolId: 'icon-[dir]-[name]'
-      })
-    ],
+    plugins: [vue()],
     build: {
       // 禁用资源内联限制，确保图片以原始路径进行加载
       assetsInlineLimit: 0,

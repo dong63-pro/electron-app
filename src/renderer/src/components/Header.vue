@@ -1,5 +1,8 @@
 <template>
   <div class="app-header">
+    <div class="app-header_logo">
+      <SvgIcon icon-class="logo" size="xxl"></SvgIcon>
+    </div>
     <div class="app-header_toolbox">
       <el-tooltip content="钉住窗口">
         <a class="function-tools" @click="thumbtackFun">
@@ -9,14 +12,14 @@
           />
         </a>
       </el-tooltip>
-      <el-tooltip content="最小化">
+      <el-tooltip content="最小化" disabled>
         <a class="function-tools" @click="MinimiseWinFn">
-          <svg-icon icon-class="cut" class="function-tools-icon" />
+          <svg-icon icon-class="cut" size="sm" class="function-tools-icon" />
         </a>
       </el-tooltip>
       <el-tooltip content="关闭">
         <a class="function-tools" @click="closeGlobalWinFn">
-          <svg-icon icon-class="close" class="function-tools-icon" />
+          <svg-icon icon-class="close" size="xs" class="function-tools-icon" />
         </a>
       </el-tooltip>
     </div>
@@ -47,8 +50,21 @@ const MinimiseWinFn = (): void => {
 .app-header {
   /* 配置窗口可拖拽 */
   -webkit-app-region: drag;
-  height: 39px;
   color: var(--ev-c-black);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &_logo {
+    height: 30px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      background: var(--ev-c-white-mute);
+      border-radius: 2px;
+    }
+  }
 
   &_toolbox {
     display: flex;
@@ -57,12 +73,13 @@ const MinimiseWinFn = (): void => {
   }
 
   .function-tools {
-    padding: 5px 5px 5px 5px;
-    line-height: 1em;
+    width: 30px;
+    height: 25px;
     display: inline-flex;
     justify-content: center;
     cursor: pointer;
     align-items: center;
+    gap: 10px;
 
     &:hover,
     &.active,

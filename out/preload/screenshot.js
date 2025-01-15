@@ -6,11 +6,8 @@ document.oncontextmenu = () => {
   ipcRenderer.invoke("close-screenshots-win-event");
 };
 ipcRenderer.on("win-draw-screenshot-style", async (_event, screenImgInfo) => {
-  console.info("win");
   document.getElementById("screenId").value = screenImgInfo.screenId;
   ipcRenderer.invoke("screen-scale-factor-event", screenImgInfo.screenId);
-  const bg = document.querySelector(".bg");
-  const bgMagnifier = document.getElementById("magnifierImg");
   const rect = document.querySelector(".rect");
   const sizeInfo = document.querySelector(".size-info");
   const screenTool = document.querySelector(".screen-tool");
@@ -19,8 +16,6 @@ ipcRenderer.on("win-draw-screenshot-style", async (_event, screenImgInfo) => {
   const draw = new Draw(
     screenImgInfo.screenImgUrl,
     // @ts-ignore
-    bg,
-    bgMagnifier,
     screenImgInfo.width,
     screenImgInfo.height,
     rect,
@@ -79,8 +74,6 @@ class Draw {
   screenImgUrl;
   screenWidth;
   screenHeight;
-  $bgImageDOM;
-  $bgMagnifierImageDOM;
   /**
    * 背景图数据存在 canvas 里面
    */
@@ -97,18 +90,16 @@ class Draw {
   $screenTransBtn;
   selectRectMeta;
   drawing;
-  constructor(screenImgUrl, bg, bgMagnifier, screenWidth, screenHeight, rect, sizeInfo, screenToolDom, cancelToolBtn, translateBtn) {
+  constructor(screenImgUrl, screenWidth, screenHeight, rect, sizeInfo, screenToolDom, cancelToolBtn, translateBtn) {
     this.drawing = false;
     this.screenImgUrl = screenImgUrl;
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;
-    this.$bgImageDOM = bg;
-    this.$bgMagnifierImageDOM = bgMagnifier;
     this.$bgCanvasTemp = null;
     this.$bgCanvasTempCtx = null;
     this.initFullScreenCanvas();
     this.$rectCanvasDOM = rect;
-    this.$rectCanvasCtx = this.$rectCanvasDOM.getContext("2d");
+    this.$rectCanvasCtx = this.$rectCanvasDOM.getContext("2d", { willReadFrequently: true });
     this.$sizeInfoDom = sizeInfo;
     this.$screenToolDom = screenToolDom;
     this.$screenCancelBtn = cancelToolBtn;
@@ -126,10 +117,8 @@ class Draw {
    * 记录屏幕快照，并赋值给背景
    */
   async initFullScreenCanvas() {
-    this.$bgImageDOM.src = this.screenImgUrl;
-    this.$bgMagnifierImageDOM.src = this.screenImgUrl;
     this.$bgCanvasTemp = document.createElement("canvas");
-    this.$bgCanvasTempCtx = this.$bgCanvasTemp.getContext("2d");
+    this.$bgCanvasTempCtx = this.$bgCanvasTemp.getContext("2d", { willReadFrequently: true });
     const img = await new Promise((resolve) => {
       const img2 = new Image();
       img2.src = this.screenImgUrl;
@@ -153,7 +142,6 @@ class Draw {
     this.drawing = true;
     this.selectRectMeta.startX = e.pageX;
     this.selectRectMeta.startY = e.pageY;
-    this.$screenToolDom.style.display = "none";
   }
   /**
    * 遮罩层
@@ -175,6 +163,12 @@ class Draw {
     if (!this.drawing) {
       return;
     }
+    if (null === this.$rectCanvasCtx) {
+      return;
+    }
+    this.$screenToolDom.style.display = "none";
+    this.$rectCanvasCtx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+    this.drawingMark();
     this.updateMouseCoordinate(e);
     const selectWidth = Math.abs(this.selectRectMeta.w);
     const selectHeight = Math.abs(this.selectRectMeta.h);
@@ -183,29 +177,23 @@ class Draw {
     if (!this.selectRectMeta.w || !this.selectRectMeta.h) {
       return;
     }
-    if (null === this.$bgCanvasTempCtx) {
-      return;
-    }
-    this.selectRectMeta.RGBAData = this.$bgCanvasTempCtx.getImageData(
-      selectX,
-      selectY,
-      Math.abs(this.selectRectMeta.w),
-      Math.abs(this.selectRectMeta.h)
-    );
-    if (null === this.$rectCanvasCtx) {
-      return;
-    }
-    this.$rectCanvasCtx.clearRect(0, 0, this.screenWidth, this.screenHeight);
-    this.drawingMark();
     this.$rectCanvasCtx.globalCompositeOperation = "destination-out";
     this.$rectCanvasCtx.fillStyle = "#000";
     this.$rectCanvasCtx.fillRect(selectX, selectY, selectWidth, selectHeight);
     this.$rectCanvasCtx.globalCompositeOperation = "destination-over";
     this.$rectCanvasCtx.strokeStyle = "#619ffb";
-    this.$rectCanvasCtx.setLineDash([5, 3]);
-    this.$rectCanvasCtx.lineWidth = 2;
-    this.$rectCanvasCtx.strokeRect(selectX, selectY, selectWidth, selectHeight);
+    this.$rectCanvasCtx.setLineDash([50, 8]);
+    this.$rectCanvasCtx.lineWidth = 5;
+    this.$rectCanvasCtx.strokeRect(selectX + 5, selectY + 5, selectWidth - 10, selectHeight - 10);
     this.setSizeInfo();
+    if (this.$bgCanvasTempCtx) {
+      this.selectRectMeta.RGBAData = this.$bgCanvasTempCtx.getImageData(
+        selectX,
+        selectY,
+        Math.abs(this.selectRectMeta.w),
+        Math.abs(this.selectRectMeta.h)
+      );
+    }
   }
   /**
    * 更新当前鼠标画图的坐标信息
@@ -236,7 +224,6 @@ class Draw {
    */
   endRect() {
     this.drawing = false;
-    this.selectRectMeta.base64Data = this.RGBA2ImageData(this.selectRectMeta.RGBAData);
     this.setToolBtn();
   }
   /**
@@ -253,10 +240,14 @@ class Draw {
   }
   setToolBtn() {
     this.$screenToolDom.style.display = "flex";
-    const leftPx = this.selectRectMeta.endX - 130;
+    const toolboxWidth = 130, toolboxHeight = 30;
+    const marginTop = 10;
+    const leftPx = this.selectRectMeta.endX - toolboxWidth;
+    const topPx = this.selectRectMeta.endY + marginTop + toolboxHeight;
     const toolLeft = leftPx > 0 ? leftPx : this.selectRectMeta.startX;
+    const toolTop = topPx > this.screenHeight ? this.selectRectMeta.endY - marginTop : topPx - toolboxHeight;
     this.$screenToolDom.style.left = `${toolLeft}px`;
-    this.$screenToolDom.style.top = `${this.selectRectMeta.endY}px`;
+    this.$screenToolDom.style.top = `${toolTop}px`;
   }
   /**
    * 退出截图
@@ -268,13 +259,14 @@ class Draw {
   /**
    * 关闭截图窗口
    */
-  close() {
+  close(e) {
     ipcRenderer.invoke("close-screenshots-win-event");
   }
   /**
    * 完成截图
    */
   done() {
+    this.selectRectMeta.base64Data = this.RGBA2ImageData(this.selectRectMeta.RGBAData);
     const imgByBase64 = this.selectRectMeta.base64Data;
     if (null === imgByBase64) {
       return;
@@ -296,7 +288,7 @@ class Draw {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (ctx == null) {
       return "";
     }
