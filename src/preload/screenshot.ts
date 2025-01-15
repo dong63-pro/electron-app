@@ -11,32 +11,11 @@ document.oncontextmenu = () => {
   ipcRenderer.invoke('close-screenshots-win-event')
 }
 
-ipcRenderer.on('win-multiple-draw-screenshot-style', async (_event, screenImgInfo) => {
-  const toCanvas = (canvas, img, w, h): void => {
-    canvas.width = w
-    canvas.height = h
-    const x = nativeImage.createFromBuffer(img).toBitmap()
-    for (let i = 0; i < x.length; i += 4) {
-      ;[x[i], x[i + 2]] = [x[i + 2], x[i]]
-    }
-    const d = new ImageData(Uint8ClampedArray.from(x), w, h)
-    canvas.getContext('2d').putImageData(d, 0, 0)
-  }
-
-  for (const i of screenImgInfo) {
-    i.height = i.height * i.scaleFactor
-    i.width = i.width * i.scaleFactor
-    if (i) {
-      const c = document.createElement('canvas')
-      toCanvas(c, i.image, i.width, i.height)
-    }
-  }
-})
-
 /**
  * 窗口绘制截图样式
  */
 ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
+  console.info('win')
   // @ts-ignore
   // 设置显示器ID
   document.getElementById('screenId').value = screenImgInfo.screenId
@@ -53,6 +32,12 @@ ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
   const rect = document.querySelector('.rect')
   // 尺寸信息
   const sizeInfo = document.querySelector('.size-info')
+  // 工具
+  const screenTool = document.querySelector('.screen-tool')
+
+  const cancelToolBtn = document.querySelector('.screen-cancel-btn')
+
+  const translateBtn = document.querySelector('.screen-translate-btn')
   // 窗口绘制截图样式
   const draw = new Draw(
     screenImgInfo.screenImgUrl,
@@ -62,7 +47,10 @@ ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
     screenImgInfo.width,
     screenImgInfo.height,
     rect,
-    sizeInfo
+    sizeInfo,
+    screenTool,
+    cancelToolBtn,
+    translateBtn
   )
   // 鼠标按下事件
   document.addEventListener('mousedown', draw.startRect.bind(draw))
@@ -70,6 +58,10 @@ ipcRenderer.on('win-draw-screenshot-style', async (_event, screenImgInfo) => {
   document.addEventListener('mousemove', draw.drawingRect.bind(draw))
   // 鼠标释放事件
   document.addEventListener('mouseup', draw.endRect.bind(draw))
+  // 取消
+  cancelToolBtn?.addEventListener('click', draw.close.bind(draw))
+
+  translateBtn?.addEventListener('click', draw.done.bind(draw))
 })
 
 class SelectRectMeta {
@@ -81,6 +73,10 @@ class SelectRectMeta {
   startX: number
   // 鼠标一开始点那个点，e.pageY
   startY: number
+  //
+  endX: number
+  //
+  endY: number
   // 向量，宽，为负说明在 startX 的左边
   w: number
   // 向量，高，为负说明在 startY 的左边
@@ -99,6 +95,8 @@ class SelectRectMeta {
     this.y = 0
     this.startX = 0
     this.startY = 0
+    this.endX = 0
+    this.endY = 0
     this.w = 0
     this.h = 0
     this.drawing = false
@@ -125,6 +123,10 @@ class Draw {
   $rectCanvasDOM: HTMLCanvasElement
   $rectCanvasCtx: CanvasRenderingContext2D | null
   $sizeInfoDom: HTMLDivElement
+  $screenToolDom: HTMLDivElement
+  $screenCancelBtn: HTMLDivElement
+  $screenTransBtn: HTMLDivElement
+
   selectRectMeta: SelectRectMeta
   drawing: boolean
 
@@ -135,7 +137,10 @@ class Draw {
     screenWidth: number,
     screenHeight: number,
     rect,
-    sizeInfo
+    sizeInfo,
+    screenToolDom,
+    cancelToolBtn,
+    translateBtn
   ) {
     this.drawing = false
     // 屏幕图像
@@ -154,6 +159,9 @@ class Draw {
     this.$rectCanvasCtx = this.$rectCanvasDOM.getContext('2d')
 
     this.$sizeInfoDom = sizeInfo
+    this.$screenToolDom = screenToolDom
+    this.$screenCancelBtn = cancelToolBtn
+    this.$screenTransBtn = translateBtn
 
     // 存储位置，矩形宽高,是否可画等meta信息
     this.selectRectMeta = new SelectRectMeta()
@@ -163,6 +171,7 @@ class Draw {
     this.setSizeInfo = this.setSizeInfo.bind(this)
     this.destroy = this.destroy.bind(this)
     this.done = this.done.bind(this)
+    this.close = this.close.bind(this)
   }
 
   /**
@@ -196,6 +205,11 @@ class Draw {
     this.$bgCanvasTempCtx.drawImage(img, 0, 0, this.screenWidth, this.screenHeight)
     // @ts-ignore 忽略校验
     this.$bgCanvasTempCtx.backgroundSize = 'cover'
+
+    this.$rectCanvasDOM.width = this.screenWidth
+    this.$rectCanvasDOM.height = this.screenHeight
+    //
+    this.drawingMark()
   }
 
   // 开始按下，对应mousedown事件
@@ -204,6 +218,17 @@ class Draw {
     // 鼠标按下的定点坐标
     this.selectRectMeta.startX = e.pageX
     this.selectRectMeta.startY = e.pageY
+    this.$screenToolDom.style.display = 'none'
+  }
+  /**
+   * 遮罩层
+   */
+  drawingMark(): void {
+    if (null === this.$rectCanvasCtx) {
+      return
+    }
+    this.$rectCanvasCtx.fillStyle = 'rgba(0,0,0,0.5)'
+    this.$rectCanvasCtx.fillRect(0, 0, this.screenWidth, this.screenHeight)
   }
 
   /**
@@ -222,10 +247,7 @@ class Draw {
     const selectHeight = Math.abs(this.selectRectMeta.h)
     const selectX = Math.abs(this.selectRectMeta.x)
     const selectY = Math.abs(this.selectRectMeta.y)
-    this.$rectCanvasDOM.width = selectWidth
-    this.$rectCanvasDOM.height = selectHeight
-    this.$rectCanvasDOM.style.left = `${selectX}px`
-    this.$rectCanvasDOM.style.top = `${selectY}px`
+
     // 没有拉伸距离会报错
     if (!this.selectRectMeta.w || !this.selectRectMeta.h) {
       return
@@ -243,15 +265,20 @@ class Draw {
     if (null === this.$rectCanvasCtx) {
       return
     }
-    this.$rectCanvasCtx.putImageData(this.selectRectMeta.RGBAData, 0, 0)
-    // 设置填充颜色
-    this.$rectCanvasCtx.fillStyle = '#0091ff30'
-    this.$rectCanvasCtx.fillRect(0, 0, selectWidth, selectHeight)
-
-    // 设置线条颜色
-    this.$rectCanvasCtx.strokeStyle = '#2371F8'
-    this.$rectCanvasCtx.lineWidth = 1
-    this.$rectCanvasCtx.strokeRect(0, 0, this.$rectCanvasDOM.width, Math.abs(this.selectRectMeta.h))
+    this.$rectCanvasCtx.clearRect(0, 0, this.screenWidth, this.screenHeight)
+    this.drawingMark()
+    this.$rectCanvasCtx.globalCompositeOperation = 'destination-out'
+    this.$rectCanvasCtx.fillStyle = '#000'
+    this.$rectCanvasCtx.fillRect(selectX, selectY, selectWidth, selectHeight)
+    this.$rectCanvasCtx.globalCompositeOperation = 'destination-over'
+    // 设置边框颜色
+    this.$rectCanvasCtx.strokeStyle = '#619ffb'
+    // 设置虚线样式，参数为一个数组，代表线段和间隔的长度
+    this.$rectCanvasCtx.setLineDash([5, 3])
+    // 设置边框宽度
+    this.$rectCanvasCtx.lineWidth = 2
+    // 绘制矩形边框
+    this.$rectCanvasCtx.strokeRect(selectX, selectY, selectWidth, selectHeight)
     //尺寸信息
     this.setSizeInfo()
   }
@@ -268,13 +295,17 @@ class Draw {
     // 计算真正的x，y坐标，根据距离在鼠标定点的左右来判断，即大于0
     if (this.selectRectMeta.w > 0) {
       this.selectRectMeta.x = this.selectRectMeta.startX
+      this.selectRectMeta.endX = e.pageX
     } else {
       this.selectRectMeta.x = e.pageX
+      this.selectRectMeta.endX = this.selectRectMeta.startX
     }
     if (this.selectRectMeta.h > 0) {
       this.selectRectMeta.y = this.selectRectMeta.startY
+      this.selectRectMeta.endY = e.pageY
     } else {
       this.selectRectMeta.y = e.pageY
+      this.selectRectMeta.endY = this.selectRectMeta.startY
     }
   }
 
@@ -287,7 +318,8 @@ class Draw {
     this.drawing = false
     // 转成base64图片
     this.selectRectMeta.base64Data = this.RGBA2ImageData(this.selectRectMeta.RGBAData)
-    this.done()
+    // this.done()
+    this.setToolBtn()
   }
 
   /**
@@ -303,6 +335,14 @@ class Draw {
     )}`
   }
 
+  setToolBtn(): void {
+    this.$screenToolDom.style.display = 'flex'
+    const leftPx = this.selectRectMeta.endX - 130
+    const toolLeft = leftPx > 0 ? leftPx : this.selectRectMeta.startX
+    this.$screenToolDom.style.left = `${toolLeft}px`
+    this.$screenToolDom.style.top = `${this.selectRectMeta.endY}px`
+  }
+
   /**
    * 退出截图
    *
@@ -313,6 +353,13 @@ class Draw {
   }
 
   /**
+   * 关闭截图窗口
+   */
+  close(): void {
+    ipcRenderer.invoke('close-screenshots-win-event')
+  }
+
+  /**
    * 完成截图
    */
   done(): void {
@@ -320,8 +367,6 @@ class Draw {
     if (null === imgByBase64) {
       return
     }
-    // 处理图片文字识别
-    // ipcRenderer.invoke('handle-image-text-recognition-event', imgByBase64)
     // 退出截图
     this.destroy(imgByBase64)
   }

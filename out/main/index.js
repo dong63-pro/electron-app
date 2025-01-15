@@ -222,7 +222,6 @@ electron.ipcMain.handle("cache-delete", (_event, storeTypeEnum, key) => {
 let nullWin;
 const screenshotWinMap = /* @__PURE__ */ new Map();
 electron.app.whenReady().then(() => {
-  createTextOcrWin();
 });
 electron.ipcMain.handle("screenshot-end-event", (_event, imgByBase64) => {
   ScreenshotsMain.closeScreenshotsWin();
@@ -238,34 +237,6 @@ electron.ipcMain.handle("screen-scale-factor-event", (_event, screenId) => {
 electron.ipcMain.handle("close-screenshots-win-event", (_event) => {
   ScreenshotsMain.closeScreenshotsWin();
 });
-function createTextOcrWin() {
-  if (ScreenshotsMain.textOcrWin) {
-    return console.info("只能有一个createTextOcrWin");
-  }
-  ScreenshotsMain.textOcrWin = new electron.BrowserWindow({
-    // window 使用 fullscreen,  mac 设置为 undefined, 不可为 false
-    fullscreen: process.platform !== "darwin" || void 0,
-    // win
-    width: 1e3,
-    height: 1e3,
-    webPreferences: {
-      // 窗口引入预加载信息
-      preload: path__namespace.join(__dirname, "../preload/textOcr.js"),
-      sandbox: false,
-      nodeIntegration: true,
-      contextIsolation: false
-    }
-  });
-  ScreenshotsMain.textOcrWin.hide();
-  if (utils.is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-    ScreenshotsMain.textOcrWin.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}/textOcr.html`);
-  } else {
-    ScreenshotsMain.textOcrWin.loadFile(path__namespace.join(__dirname, "../renderer/textOcr.html"));
-  }
-  ScreenshotsMain.textOcrWin.on("closed", () => {
-    ScreenshotsMain.textOcrWin = nullWin;
-  });
-}
 class ScreenshotsSon {
   /**
    * 截图窗口

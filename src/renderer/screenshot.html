@@ -24,6 +24,7 @@
   .rect {
     position: absolute;
     z-index: 1;
+    cursor: crosshair;
   }
 
   .size-info {
@@ -37,7 +38,19 @@
     display: none;
     z-index: 2;
   }
-
+  .screen-tool {
+    position: absolute;
+    background-color: #fff;
+    display: none;
+    z-index: 2;
+  }
+  .screen-cancel-btn, .screen-translate-btn {
+    padding: 5px 20px;
+    color: blue;
+    font-size: 12px;
+    font-family: Arial Consolas sans-serif;
+    cursor: pointer;
+  }
   #magnifierDiv {
     position: absolute;
     border: 2px solid grey;
@@ -75,6 +88,10 @@
 </div>
 <canvas class='rect'></canvas>
 <div class='size-info'></div>
+<div class="screen-tool">
+  <div class="screen-cancel-btn">取消</div>
+  <div class="screen-translate-btn">翻译</div>
+</div>
 <script>
   window.addEventListener('error', function (event) {
     window.api.logErrorEvent('[截图窗口异常]', event.error)

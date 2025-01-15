@@ -11,10 +11,7 @@ let nullWin: BrowserWindow
 const screenshotWinMap = new Map()
 
 // 窗口加载完毕后执行
-app.whenReady().then(() => {
-  // 预加载文字识别窗口
-  createTextOcrWin()
-})
+app.whenReady().then(() => {})
 
 /**
  * 截图结束事件
@@ -59,46 +56,6 @@ ipcMain.handle('screen-scale-factor-event', (_event, screenId) => {
 ipcMain.handle('close-screenshots-win-event', (_event) => {
   ScreenshotsMain.closeScreenshotsWin()
 })
-
-/**
- * 创建文字识别窗口
- */
-function createTextOcrWin(): void {
-  // 创建浏览器窗口，只允许创建一个
-  if (ScreenshotsMain.textOcrWin) {
-    return console.info('只能有一个createTextOcrWin')
-  }
-  ScreenshotsMain.textOcrWin = new BrowserWindow({
-    // window 使用 fullscreen,  mac 设置为 undefined, 不可为 false
-    fullscreen: process.platform !== 'darwin' || undefined, // win
-    width: 1000,
-    height: 1000,
-    webPreferences: {
-      // 窗口引入预加载信息
-      preload: path.join(__dirname, '../preload/textOcr.js'),
-      sandbox: false,
-      nodeIntegration: true,
-      contextIsolation: false
-    }
-  })
-  ScreenshotsMain.textOcrWin.hide()
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    ScreenshotsMain.textOcrWin.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/textOcr.html`)
-  } else {
-    ScreenshotsMain.textOcrWin.loadFile(path.join(__dirname, '../renderer/textOcr.html'))
-  }
-
-  // 打开开发者工具
-  // ScreenshotsMain.textOcrWin.webContents.openDevTools({ mode: 'detach' })
-
-  // 当 window 被关闭，这个事件会被触发。
-  ScreenshotsMain.textOcrWin.on('closed', () => {
-    // 取消引用 window 对象，如果你的应用支持多窗口的话，
-    // 通常会把多个 window 对象存放在一个数组里面，
-    // 与此同时，你应该删除相应的元素。
-    ScreenshotsMain.textOcrWin = nullWin
-  })
-}
 
 class ScreenshotsSon {
   /**
